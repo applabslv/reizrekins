@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="lv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Reizrēķins debesīs — lidmašīnu spēle</title>
+<meta name="description" content="Reizināšanas tabulas spēle bērniem — lido ar lidmašīnu un trāpi pareizajā atbildē!">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Reizrēķins">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✈️</text></svg>">
+</head>
+<body>
+<div id="stage">
+  <canvas id="game"></canvas>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div id="hud-time">0:00</div>
+    <div id="question-bar" class="hidden"><span id="q-text"></span><div id="qtimer-fill"></div></div>
+    <div id="hud-right">
+      <span id="hud-lives"></span>
+      <span id="hud-score">✓ 0</span>
+    </div>
+  </div>
+
+  <button id="btn-pause" class="round-btn hidden" aria-label="Pauze">☰</button>
+  <div id="corner-btns">
+    <button id="btn-sound" class="round-btn" aria-label="Skaņa">🔊</button>
+  </div>
+
+  <div id="countdown" class="hidden"></div>
+  <div id="feedback" class="hidden"></div>
+
+  <!-- MENU -->
+  <div id="menu" class="panel">
+    <h1>✈️ Reizrēķins debesīs</h1>
+    <p class="subtitle">Lido ar bultiņām ↑ ↓ vai velc ar pirkstu.<br>Uzlido mākonim ar pareizo atbildi, no pārējiem izvairies!<br>Pēc 15 sekundēm mākoņi aizšķērsos visas debesis.</p>
+    <div class="menu-group">
+      <div class="menu-label">Reizināšanas tabula</div>
+      <div id="table-picker" class="pick-row"></div>
+    </div>
+    <div class="menu-group">
+      <div class="menu-label">Ātrums</div>
+      <div id="speed-picker" class="pick-row"></div>
+    </div>
+    <button id="btn-start" class="big-btn">▶ Sākt spēli</button>
+    <button id="btn-scores" class="text-btn">🏆 Labākie rezultāti</button>
+  </div>
+
+  <!-- PAUSE -->
+  <div id="pause" class="panel hidden">
+    <h2>Pauze</h2>
+    <button id="btn-resume" class="big-btn">▶ Turpināt</button>
+    <button id="btn-restart-pause" class="text-btn">↻ Sākt no jauna</button>
+    <button id="btn-quit" class="text-btn">⌂ Uz sākumu</button>
+  </div>
+
+  <!-- GAME OVER -->
+  <div id="gameover" class="panel hidden">
+    <h2 id="go-title">SPĒLE GALĀ</h2>
+    <div id="go-stats">
+      <div class="go-stat"><div class="go-label">Punkti</div><div id="go-score" class="go-value">0</div></div>
+      <div class="go-stat"><div class="go-label">Laiks</div><div id="go-time" class="go-value">0:00</div></div>
+    </div>
+    <div id="go-best" class="hidden">⭐ Jauns rekords! ⭐</div>
+    <button id="btn-go-scores" class="text-btn">🏆 Rezultāti</button>
+    <button id="btn-answers" class="text-btn">📋 Rādīt atbildes</button>
+    <button id="btn-again" class="big-btn">↻ Sākt vēlreiz</button>
+    <button id="btn-go-menu" class="text-btn">⌂ Uz sākumu</button>
+  </div>
+
+  <!-- ANSWERS -->
+  <div id="answers" class="panel hidden">
+    <h2>Atbildes</h2>
+    <div id="answers-grid"></div>
+    <button id="btn-answers-back" class="big-btn">← Atpakaļ</button>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div id="leaderboard" class="panel hidden">
+    <h2>🏆 Labākie rezultāti</h2>
+    <div id="lb-list"></div>
+    <button id="btn-lb-back" class="big-btn">← Atpakaļ</button>
+  </div>
+
+  <div id="rotate-hint" class="hidden">📱↻<br>Pagriez ierīci horizontāli!<br><span class="rh-small">(piesit, lai turpinātu tāpat)</span></div>
+</div>
+<script src="game.js"></script>
+</body>
+</html>
