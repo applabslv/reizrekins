@@ -651,13 +651,13 @@ function showLeaderboard(from) {
   } else {
     const head = document.createElement('div');
     head.className = 'lb-row head';
-    head.innerHTML = '<span>#</span><span>Tabula · Ātrums</span><span class="num">Punkti</span><span class="num">Laiks</span>';
+    head.innerHTML = '<span>#</span><span>Tabula</span><span>Ātrums</span><span>Punkti</span><span>Laiks</span>';
     list.appendChild(head);
     scores.slice(0, 10).forEach((s, i) => {
       const r = document.createElement('div');
       r.className = 'lb-row';
-      r.innerHTML = `<span>${i + 1}.</span><span>${s.table}× · ātrums ${s.speed}</span>` +
-        `<span class="num">${s.score}/12</span><span class="num">${fmtTime(s.time)}</span>`;
+      r.innerHTML = `<span>${i + 1}.</span><span>${s.table}×</span><span>${s.speed}</span>` +
+        `<span>${s.score}/12</span><span>${fmtTime(s.time)}</span>`;
       list.appendChild(r);
     });
   }

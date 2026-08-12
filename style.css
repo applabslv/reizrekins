@@ -271,15 +271,16 @@ html, body {
 }
 .lb-row {
   display: grid;
-  grid-template-columns: 2em 1fr 4.5em 4.5em;
+  grid-template-columns: 2em 1fr 1fr 1.2fr 1.2fr;
   gap: .4em;
   padding: .18em .5em;
   border-radius: 8px;
-  text-align: left;
+  align-items: baseline;
 }
+.lb-row span { text-align: center; }
+.lb-row span:first-child { text-align: left; }
 .lb-row:nth-child(odd) { background: rgba(255,255,255,.06); }
 .lb-row.head { color: #7fb3ff; font-size: .85em; }
-.lb-row .num { text-align: right; }
 .lb-empty { color: #8aa; padding: 1em 0; }
 
 /* ---------- kompakts režīms (īss ekrāns, piem., iPhone gulus) ---------- */
