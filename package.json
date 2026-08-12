@@ -1,0 +1,17 @@
+{
+  "name": "reizinat",
+  "version": "1.0.0",
+  "main": "game.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "deploy": "wrangler pages deploy .",
+    "wrangler": "wrangler"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "wrangler": "^4.86.0"
+  }
+}
