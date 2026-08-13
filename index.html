@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=17">
+<link rel="stylesheet" href="style.css?v=23">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✈️</text></svg>">
 <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "1137c6de41604e6eb4049c9d4900d1a1"}'></script><!-- End Cloudflare Web Analytics -->
 </head>
@@ -31,9 +31,9 @@
     </div>
   </div>
 
-  <button id="btn-pause" class="round-btn hidden" aria-label="Pauze">☰</button>
+  <button id="btn-pause" class="round-btn hidden" aria-label="Pauze" data-i18n-aria="aria.pause">☰</button>
   <div id="corner-btns">
-    <button id="btn-sound" class="round-btn" aria-label="Skaņa">🔊</button>
+    <button id="btn-sound" class="round-btn" aria-label="Skaņa" data-i18n-aria="aria.sound">🔊</button>
   </div>
 
   <div id="countdown" class="hidden"></div>
@@ -41,66 +41,69 @@
 
   <!-- MENU -->
   <div id="menu" class="panel">
-    <h1>✈️ Reizrēķins debesīs</h1>
-    <p class="subtitle">Lido ar bultiņām ↑ ↓ vai velc ar pirkstu.<br>Uzlido mākonim ar pareizo atbildi, no pārējiem izvairies!<br>Pēc 15 sekundēm mākoņi aizšķērsos visas debesis.</p>
+    <h1 data-i18n="menu.h1">✈️ Reizrēķins debesīs</h1>
+    <p class="subtitle" data-i18n="menu.subtitle">Lido ar bultiņām ↑ ↓ vai velc ar pirkstu.<br>Uzlido mākonim ar pareizo atbildi, no pārējiem izvairies!<br>Pēc 15 sekundēm mākoņi aizšķērsos visas debesis.</p>
     <div class="menu-group">
-      <div class="menu-label">Reizināšanas tabula</div>
+      <div class="menu-label" data-i18n="label.table">Reizināšanas tabula</div>
       <div id="table-picker" class="pick-row"></div>
     </div>
     <div class="menu-group">
-      <div class="menu-label">Atbildes</div>
+      <div class="menu-label" data-i18n="label.answers">Atbildes</div>
       <div id="choice-picker" class="pick-row"></div>
     </div>
     <div class="menu-group">
-      <div class="menu-label">Ātrums</div>
+      <div class="menu-label" data-i18n="label.speed">Ātrums</div>
       <div id="speed-picker" class="pick-row"></div>
     </div>
-    <button id="btn-start" class="big-btn">▶ Sākt spēli</button>
-    <button id="btn-scores" class="text-btn">🏆 Labākie rezultāti</button>
+    <button id="btn-start" class="big-btn" data-i18n="btn.start">▶ Sākt spēli</button>
+    <button id="btn-scores" class="text-btn" data-i18n="btn.scores">🏆 Labākie rezultāti</button>
+    <div id="lang-picker" class="pick-row" role="group" aria-label="Valoda"
+         data-i18n-aria="label.language"></div>
   </div>
 
   <!-- PAUSE -->
   <div id="pause" class="panel hidden">
-    <h2>Pauze</h2>
-    <button id="btn-resume" class="big-btn">▶ Turpināt</button>
-    <button id="btn-restart-pause" class="text-btn">↻ Sākt no jauna</button>
-    <button id="btn-quit" class="text-btn">⌂ Uz sākumu</button>
+    <h2 data-i18n="pause.title">Pauze</h2>
+    <button id="btn-resume" class="big-btn" data-i18n="btn.resume">▶ Turpināt</button>
+    <button id="btn-restart-pause" class="text-btn" data-i18n="btn.restart">↻ Sākt no jauna</button>
+    <button id="btn-quit" class="text-btn" data-i18n="btn.home">⌂ Uz sākumu</button>
   </div>
 
   <!-- GAME OVER -->
   <div id="gameover" class="panel hidden">
     <h2 id="go-title">SPĒLE GALĀ</h2>
     <div id="go-stats">
-      <div class="go-stat"><div class="go-label">Punkti</div><div id="go-score" class="go-value">0</div></div>
-      <div class="go-stat"><div class="go-label">Laiks</div><div id="go-time" class="go-value">0:00</div></div>
+      <div class="go-stat"><div class="go-label" data-i18n="go.points">Punkti</div><div id="go-score" class="go-value">0</div></div>
+      <div class="go-stat"><div class="go-label" data-i18n="go.time">Laiks</div><div id="go-time" class="go-value">0:00</div></div>
     </div>
-    <div id="go-best" class="hidden">⭐ Jauns rekords! ⭐</div>
-    <button id="btn-go-scores" class="text-btn">🏆 Rezultāti</button>
-    <button id="btn-answers" class="text-btn">📋 Rādīt atbildes</button>
-    <button id="btn-again" class="big-btn">↻ Sākt vēlreiz</button>
-    <button id="btn-go-menu" class="text-btn">⌂ Uz sākumu</button>
+    <div id="go-best" class="hidden" data-i18n="go.best">⭐ Jauns rekords! ⭐</div>
+    <button id="btn-go-scores" class="text-btn" data-i18n="btn.results">🏆 Rezultāti</button>
+    <button id="btn-answers" class="text-btn" data-i18n="btn.showAnswers">📋 Rādīt atbildes</button>
+    <button id="btn-again" class="big-btn" data-i18n="btn.again">↻ Sākt vēlreiz</button>
+    <button id="btn-go-menu" class="text-btn" data-i18n="btn.home">⌂ Uz sākumu</button>
   </div>
 
   <!-- ANSWERS -->
   <div id="answers" class="panel hidden">
-    <h2>Atbildes</h2>
+    <h2 data-i18n="answers.title">Atbildes</h2>
     <div id="answers-grid"></div>
     <div id="answers-legend">
-      <span class="lg-got">pareizi</span>
-      <span class="lg-missed">nepareizi</span>
-      <span class="lg-skipped">nepaspēja</span>
+      <span class="lg-got" data-i18n="legend.got">pareizi</span>
+      <span class="lg-missed" data-i18n="legend.missed">nepareizi</span>
+      <span class="lg-skipped" data-i18n="legend.skipped">nepaspēja</span>
     </div>
-    <button id="btn-answers-back" class="big-btn">← Atpakaļ</button>
+    <button id="btn-answers-back" class="big-btn" data-i18n="btn.back">← Atpakaļ</button>
   </div>
 
   <!-- LEADERBOARD -->
   <div id="leaderboard" class="panel hidden">
-    <h2>🏆 Labākie rezultāti</h2>
+    <h2 data-i18n="lb.title">🏆 Labākie rezultāti</h2>
     <div id="lb-list"></div>
-    <button id="btn-lb-back" class="big-btn">← Atpakaļ</button>
+    <button id="btn-lb-back" class="big-btn" data-i18n="btn.back">← Atpakaļ</button>
   </div>
 
 </div>
-<script src="game.js?v=17"></script>
+<script src="i18n.js?v=23"></script>
+<script src="game.js?v=23"></script>
 </body>
 </html>

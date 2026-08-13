@@ -41,8 +41,10 @@ const panels = {
 };
 
 // ---------- stāvoklis ----------
-let settings = loadJSON('settings', { table: 12, speed: 2, choices: 3, muted: false });
+let settings = loadJSON('settings', { table: 12, speed: 2, choices: 3, lang: null, muted: false });
 if (!CHOICES.includes(settings.choices)) settings.choices = 3;
+// Pirmajā palaišanā valodu ņemam no pārlūka, tālāk — ko lietotājs izvēlējies.
+lang = STRINGS[settings.lang] ? settings.lang : detectLang();
 let state = 'menu';        // menu | countdown | playing | feedback | paused | gameover
 let lbReturnTo = 'menu';
 let scaleFit = 1, offX = 0, offY = 0;
@@ -226,11 +228,11 @@ function nextQuestion() {
 
 function spawnQuestion() {
   const wrong = new Set();
-  const t = game.table, f = game.factor, ans = game.answer;
+  const tb = game.table, f = game.factor, ans = game.answer;
   const candidates = shuffle([
-    t * (f - 1), t * (f + 1), t * (f + 2), t * (f - 2),
+    tb * (f - 1), tb * (f + 1), tb * (f + 2), tb * (f - 2),
     ans + irnd(1, 3), ans - irnd(1, 3),
-    (t - 1) * f, (t + 1) * f,
+    (tb - 1) * f, (tb + 1) * f,
   ].filter(v => v > 0 && v !== ans));
   const need = game.choices - 1;
   for (const v of candidates) { if (wrong.size < need && !wrong.has(v)) wrong.add(v); }
@@ -288,12 +290,12 @@ function resolveAnswer(ok, cloud) {
     game.score++;
     sfx.correct();
     // U+FE0E = teksta (nevis emoji) variants, lai ķeksis pārmanto CSS krāsu
-    feedbackEl.innerHTML = 'Pareizi! <span class="fb-mark">✔︎</span>';
+    feedbackEl.innerHTML = t('fb.correct') + ' <span class="fb-mark">✔︎</span>';
     feedbackEl.className = 'good';
   } else {
     game.lives--;
     sfx.wrong();
-    feedbackEl.innerHTML = 'Nepareizi! <span class="fb-mark">✘︎</span>' +
+    feedbackEl.innerHTML = t('fb.wrong') + ' <span class="fb-mark">✘︎</span>' +
       `<span class="fb-eq">${game.table} × ${game.factor} = <b>${game.answer}</b></span>`;
     feedbackEl.className = 'bad';
   }
@@ -314,7 +316,7 @@ function endGame() {
     table: game.table, speed: game.speed, choices: game.choices, date: Date.now(),
   });
   $('go-best').classList.toggle('hidden', !isBest);
-  $('go-title').textContent = game.lives <= 0 ? '🏁 SPĒLE GALĀ' : '🏁 MALACIS!';
+  $('go-title').textContent = t(game.lives <= 0 ? 'go.over' : 'go.win');
   showPanel('gameover');
   if (isBest) sfx.best(); else sfx.over();
 }
@@ -626,11 +628,11 @@ stage.addEventListener('touchend', e => {
 function buildPickers() {
   const tp = $('table-picker');
   tp.innerHTML = '';
-  for (const t of TABLES) {
+  for (const tb of TABLES) {
     const b = document.createElement('button');
-    b.className = 'pick-btn' + (t === settings.table ? ' sel' : '');
-    b.textContent = t;
-    b.onclick = () => { settings.table = t; saveJSON('settings', settings); buildPickers(); sfx.tick(); };
+    b.className = 'pick-btn' + (tb === settings.table ? ' sel' : '');
+    b.textContent = tb;
+    b.onclick = () => { settings.table = tb; saveJSON('settings', settings); buildPickers(); sfx.tick(); };
     tp.appendChild(b);
   }
   const sp = $('speed-picker');
@@ -648,9 +650,28 @@ function buildPickers() {
     const b = document.createElement('button');
     b.className = 'pick-btn pick-clouds' + (c === settings.choices ? ' sel' : '');
     b.textContent = '☁'.repeat(c);
-    b.setAttribute('aria-label', c + ' izvēles');
+    b.setAttribute('aria-label', t('aria.choices', { n: c }));
     b.onclick = () => { settings.choices = c; saveJSON('settings', settings); buildPickers(); sfx.tick(); };
     cp.appendChild(b);
+  }
+  const lp = $('lang-picker');
+  lp.innerHTML = '';
+  for (const l of LANGS) {
+    const b = document.createElement('button');
+    b.className = 'pick-btn pick-lang' + (l.code === lang ? ' sel' : '');
+    b.textContent = l.label;
+    b.title = l.name;
+    b.setAttribute('aria-label', l.name);
+    b.setAttribute('aria-pressed', String(l.code === lang));
+    b.onclick = () => {
+      lang = l.code;
+      settings.lang = l.code;
+      saveJSON('settings', settings);
+      applyI18n();
+      buildPickers();
+      sfx.tick();
+    };
+    lp.appendChild(b);
   }
 }
 
@@ -699,19 +720,20 @@ function showLeaderboard(from) {
   const scores = loadScores().sort(cmpScores);
   list.innerHTML = '';
   if (!scores.length) {
-    list.innerHTML = '<div class="lb-empty">Vēl nav rezultātu — nospēlē pirmo spēli!</div>';
+    list.innerHTML = `<div class="lb-empty">${t('lb.empty')}</div>`;
   } else {
     const head = document.createElement('div');
     head.className = 'lb-row head';
-    head.innerHTML = '<span>#</span><span>Tabula</span><span title="Atbilžu mākoņi">☁</span>' +
-      '<span>Ātrums</span><span>Punkti</span><span>Laiks</span>';
+    head.innerHTML = `<span>#</span><span>${t('lb.table')}</span>` +
+      `<span class="lb-clouds" title="${t('lb.choices')}">☁</span>` +
+      `<span>${t('lb.speed')}</span><span>${t('lb.points')}</span><span>${t('lb.time')}</span>`;
     list.appendChild(head);
     scores.slice(0, 10).forEach((s, i) => {
       const r = document.createElement('div');
       r.className = 'lb-row';
       const ch = s.choices || 3;
       r.innerHTML = `<span>${i + 1}.</span><span>${s.table}×</span>` +
-        `<span class="lb-clouds" title="${ch} izvēles">${ch}</span>` +
+        `<span class="lb-clouds" title="${t('aria.choices', { n: ch })}">${ch}</span>` +
         `<span>${s.speed}</span><span>${s.score}/12</span><span>${fmtTime(s.time)}</span>`;
       list.appendChild(r);
     });
@@ -742,6 +764,7 @@ $('btn-sound').onclick = () => {
 
 
 // ================= STARTS =================
+applyI18n();
 $('btn-sound').textContent = settings.muted ? '🔇' : '🔊';
 resize();
 initBackground();
