@@ -111,6 +111,23 @@ html, body {
 }
 #corner-btns .round-btn { position: static; }
 
+/* ---------- kontakti ---------- */
+#contact {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(4% + env(safe-area-inset-bottom));
+  z-index: 9;
+  color: rgba(255,255,255,.75);
+  font-size: clamp(12px, 2.4vh, 16px);
+  font-weight: 700;
+  text-decoration: none;
+  padding: .3em .7em;
+  border-radius: 10px;
+  text-shadow: 0 2px 6px rgba(0,0,0,.4);
+}
+#contact:hover, #contact:active { color: #fff; text-decoration: underline; }
+
 /* ---------- countdown & feedback ---------- */
 #countdown {
   position: absolute;

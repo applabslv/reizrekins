@@ -153,6 +153,8 @@ function fmtTime(ms) {
 function showPanel(name) {
   for (const k in panels) panels[k].classList.toggle('hidden', k !== name);
   if (!name) for (const k in panels) panels[k].classList.add('hidden');
+  // kontaktu saite tikai sākuma ekrānā — spēles laikā tā traucētu
+  $('contact').classList.toggle('hidden', name !== 'menu');
 }
 
 // ================= IZMĒRI =================
