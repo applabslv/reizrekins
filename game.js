@@ -6,12 +6,24 @@
 
 // ---------- konstantes ----------
 const VW = 1280, VH = 720;            // virtuālā izšķirtspēja
-const TABLES = [9, 10, 11, 12, 13];
+const TABLES = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
 const SPEEDS = [1, 2, 3, 4, 5];
 const LIVES_START = 5;
 const FACTORS = Array.from({ length: 12 }, (_, i) => i + 1); // 1..12
-const LANES_Y = [155, 268, 381, 494, 607];   // 5 joslu augstumi
-const LANE_GAP = 113;
+const CHOICES = [2, 3, 4];            // atbilžu mākoņu skaits
+const STORM_LANES = 2;                // vienmēr 2 negaisa mākoņi sienā
+const LANE_CENTER = 381, LANE_SPAN = 460, LANE_GAP_MAX = 113;
+
+// Joslu skaits = atbilžu skaits + negaisa mākoņi. Aug/sarūk līdz ar izvēlēm.
+let LANES_Y = [], LANE_GAP = LANE_GAP_MAX, CLOUD_R = 74;
+function setupLanes(choices) {
+  const n = choices + STORM_LANES;
+  LANE_GAP = Math.min(LANE_GAP_MAX, LANE_SPAN / (n - 1));
+  CLOUD_R = Math.min(74, LANE_GAP * 0.78);
+  const top = LANE_CENTER - LANE_GAP * (n - 1) / 2;
+  LANES_Y = Array.from({ length: n }, (_, i) => top + i * LANE_GAP);
+}
+setupLanes(3);
 const PLANE_X = 260;
 const QUESTION_TIME = 15;             // sekundes līdz mākoņu sienai
 const LS_KEY = 'reizrekins';
@@ -29,7 +41,8 @@ const panels = {
 };
 
 // ---------- stāvoklis ----------
-let settings = loadJSON('settings', { table: 12, speed: 2, muted: false });
+let settings = loadJSON('settings', { table: 12, speed: 2, choices: 3, muted: false });
+if (!CHOICES.includes(settings.choices)) settings.choices = 3;
 let state = 'menu';        // menu | countdown | playing | feedback | paused | gameover
 let lbReturnTo = 'menu';
 let scaleFit = 1, offX = 0, offY = 0;
@@ -50,6 +63,7 @@ const game = {
   countdownT: 0, countdownN: 3,
   feedbackT: 0, feedbackOK: false,
   bob: 0,
+  cityX: 0,                // pilsētas paralakses nobīde
 };
 
 // fona elementi
@@ -102,12 +116,22 @@ function loadScores() {
   try { return JSON.parse(localStorage.getItem(LS_KEY + '.scores')) || []; }
   catch { return []; }
 }
+// Sarežģītība: lielāka tabula, vairāk izvēļu un lielāks ātrums = grūtāk.
+const complexity = (s) => s.table * 100 + (s.choices || 3) * 10 + s.speed;
+// Kārtojam: vispirms sarežģītība, tad pareizība, tad laiks.
+const cmpScores = (a, b) =>
+  complexity(b) - complexity(a) || b.score - a.score || a.time - b.time;
+
 function saveScore(entry) {
   const scores = loadScores();
   scores.push(entry);
-  scores.sort((a, b) => b.score - a.score || a.time - b.time);
+  scores.sort(cmpScores);
   localStorage.setItem(LS_KEY + '.scores', JSON.stringify(scores.slice(0, 30)));
-  return scores.indexOf(entry) === 0 && entry.score > 0;
+  // Rekords ir labākais tieši šim līmenim — citādi iesācējs ar 2×
+  // nekad neredzētu "Jauns rekords!".
+  const sameLevel = scores.filter(s =>
+    s.table === entry.table && s.speed === entry.speed && (s.choices || 3) === entry.choices);
+  return sameLevel[0] === entry && entry.score > 0;
 }
 
 // ================= PALĪGI =================
@@ -164,6 +188,8 @@ function initBackground() {
 function startGame() {
   game.table = settings.table;
   game.speed = settings.speed;
+  game.choices = settings.choices;
+  setupLanes(game.choices);
   game.lives = LIVES_START;
   game.score = 0;
   game.deck = shuffle([...FACTORS]);
@@ -171,8 +197,8 @@ function startGame() {
   game.results = [];
   game.clouds = [];
   game.smoke = [];
-  game.planeLane = 2;
-  game.planeY = LANES_Y[2];
+  game.planeLane = Math.floor(LANES_Y.length / 2);
+  game.planeY = LANES_Y[game.planeLane];
   game.elapsed = 0;
   game.cloudSpeed = 150 + game.speed * 62;   // px/s @ 1280 platuma
   showPanel(null);
@@ -206,7 +232,8 @@ function spawnQuestion() {
     ans + irnd(1, 3), ans - irnd(1, 3),
     (t - 1) * f, (t + 1) * f,
   ].filter(v => v > 0 && v !== ans));
-  for (const v of candidates) { if (wrong.size < 2 && !wrong.has(v)) wrong.add(v); }
+  const need = game.choices - 1;
+  for (const v of candidates) { if (wrong.size < need && !wrong.has(v)) wrong.add(v); }
   game.waveValues = shuffle([ans, ...wrong]);
   game.qTimer = 0;
   game.wallSpawned = false;
@@ -219,13 +246,17 @@ function spawnQuestion() {
   spawnWave(false);
 }
 
-// parasts vilnis: 3 mākoņi 3 no 5 joslām (2 brīvas — var izvairīties);
-// siena: visas 5 joslas vienā līnijā — 3 atbildes + 2 negaisa mākoņi
+// parasts vilnis: atbilžu mākoņi izklaidus (pārējās joslas brīvas — var izvairīties);
+// siena: visas joslas aizņemtas — atbildes + 2 negaisa mākoņi.
+// Sienā mākoņi nedrīkst stāvēt vienā taisnā līnijā — katram neliela nobīde.
+// Pietiekami maza, lai siena paliktu siena (visas joslas aizņemtas).
+const wallJitter = () => rnd(-70, 70);
+
 function spawnWave(wall) {
-  const lanes = shuffle([0, 1, 2, 3, 4]);
+  const lanes = shuffle(LANES_Y.map((_, i) => i));
   game.waveValues.forEach((v, i) => {
     game.clouds.push({
-      x: VW + 160 + (wall ? 0 : i * 300 + rnd(0, 150)),
+      x: VW + 160 + (wall ? wallJitter() : i * 300 + rnd(0, 150)),
       lane: lanes[i],
       value: v,
       correct: v === game.answer,
@@ -235,9 +266,9 @@ function spawnWave(wall) {
     });
   });
   if (wall) {
-    for (let i = 3; i < 5; i++) {
+    for (let i = game.waveValues.length; i < lanes.length; i++) {
       game.clouds.push({
-        x: VW + 160, lane: lanes[i], value: null, correct: false,
+        x: VW + 160 + wallJitter(), lane: lanes[i], value: null, correct: false,
         storm: true, alpha: 1, hit: false, wall,
         puffSeed: Math.random() * 10,
       });
@@ -256,12 +287,14 @@ function resolveAnswer(ok, cloud) {
   if (ok) {
     game.score++;
     sfx.correct();
-    feedbackEl.textContent = 'Pareizi! ✔';
+    // U+FE0E = teksta (nevis emoji) variants, lai ķeksis pārmanto CSS krāsu
+    feedbackEl.innerHTML = 'Pareizi! <span class="fb-mark">✔︎</span>';
     feedbackEl.className = 'good';
   } else {
     game.lives--;
     sfx.wrong();
-    feedbackEl.textContent = `Nepareizi! ✘  (${game.table} × ${game.factor} = ${game.answer})`;
+    feedbackEl.innerHTML = 'Nepareizi! <span class="fb-mark">✘︎</span>' +
+      `<span class="fb-eq">${game.table} × ${game.factor} = <b>${game.answer}</b></span>`;
     feedbackEl.className = 'bad';
   }
   game.deckIdx++;
@@ -278,17 +311,17 @@ function endGame() {
   $('go-time').textContent = fmtTime(game.elapsed);
   const isBest = saveScore({
     score: game.score, time: game.elapsed,
-    table: game.table, speed: game.speed, date: Date.now(),
+    table: game.table, speed: game.speed, choices: game.choices, date: Date.now(),
   });
   $('go-best').classList.toggle('hidden', !isBest);
-  $('go-title').textContent = game.lives <= 0 ? 'SPĒLE GALĀ' : 'MALACIS!';
+  $('go-title').textContent = game.lives <= 0 ? '🏁 SPĒLE GALĀ' : '🏁 MALACIS!';
   showPanel('gameover');
   if (isBest) sfx.best(); else sfx.over();
 }
 
 function updateHUD() {
   hudLives.textContent = '❤'.repeat(game.lives) + '🖤'.repeat(LIVES_START - game.lives);
-  hudScore.textContent = '✓ ' + game.score;
+  hudScore.textContent = `✓ ${game.score}/${game.results.length}`;
 }
 
 // ================= ATJAUNOŠANA =================
@@ -299,6 +332,12 @@ function update(dt) {
   for (const c of bgClouds) {
     c.x -= c.v * dt;
     if (c.x < -220) { c.x = VW + 220; c.y = rnd(30, VH * 0.75); }
+  }
+
+  // pilsēta slīd līdzi, kamēr lidmašīna lido (pauzē un spēles galā stāv)
+  if (state === 'playing' || state === 'countdown' || state === 'feedback' || state === 'menu') {
+    const flying = state === 'playing' || state === 'feedback';
+    game.cityX += (flying ? game.cloudSpeed * 0.16 : 22) * dt;
   }
 
   if (state === 'countdown') {
@@ -416,8 +455,9 @@ function draw() {
 
   // pilsētas silueti (aizmugure — pāri visam platumam, arī ārpus 16:9)
   const fullL = -offX / scaleFit, fullR = VW + offX / scaleFit;
-  drawSkyline(skyline2, VH, 'rgba(190, 214, 240, 0.65)', fullL, fullR);
-  drawSkyline(skyline1, VH, 'rgba(150, 185, 224, 0.85)', fullL, fullR);
+  // tālākā rinda kustas lēnāk — paralakse
+  drawSkyline(skyline2, VH, 'rgba(190, 214, 240, 0.65)', fullL, fullR, game.cityX * 0.55);
+  drawSkyline(skyline1, VH, 'rgba(150, 185, 224, 0.85)', fullL, fullR, game.cityX);
 
   // fona mākoņi
   for (const c of bgClouds) drawCloud(c.x, c.y, 90 * c.s, c.dark ? 'rgba(90,110,140,.5)' : 'rgba(255,255,255,.75)', null, c.s);
@@ -428,7 +468,7 @@ function draw() {
     ctx.save();
     ctx.globalAlpha = c.alpha;
     if (c.storm) {
-      drawCloud(c.x, LANES_Y[c.lane], 74, '#4b5a70', null, 1, c.puffSeed);
+      drawCloud(c.x, LANES_Y[c.lane], CLOUD_R, '#4b5a70', null, 1, c.puffSeed);
       // zibens
       ctx.strokeStyle = '#ffe14a';
       ctx.lineWidth = 5;
@@ -440,7 +480,7 @@ function draw() {
       ctx.lineTo(c.x + 12, LANES_Y[c.lane] + 32);
       ctx.stroke();
     } else {
-      drawCloud(c.x, LANES_Y[c.lane], 74, '#ffffff', String(c.value), 1, c.puffSeed);
+      drawCloud(c.x, LANES_Y[c.lane], CLOUD_R, '#ffffff', String(c.value), 1, c.puffSeed);
     }
     ctx.restore();
   }
@@ -468,11 +508,13 @@ function draw() {
   }
 }
 
-function drawSkyline(list, baseY, color, xL, xR) {
+function drawSkyline(list, baseY, color, xL, xR, scroll = 0) {
+  const period = VW + 60;
+  const shift = ((scroll % period) + period) % period;   // vienmēr [0, period)
   ctx.fillStyle = color;
   for (const b of list) {
-    for (let rep = xL - 80; rep < xR; rep += VW + 60) {
-      const bx = b.x + rep + 40;
+    for (let rep = xL - 80 - period; rep < xR + period; rep += period) {
+      const bx = b.x + rep + 40 - shift;
       if (bx + b.w < xL || bx > xR) continue;
       ctx.fillRect(bx, baseY - b.h, b.w, b.h + 40);
       if (b.ant) ctx.fillRect(bx + b.w / 2 - 3, baseY - b.h - 26, 6, 26);
@@ -600,6 +642,16 @@ function buildPickers() {
     b.onclick = () => { settings.speed = s; saveJSON('settings', settings); buildPickers(); sfx.tick(); };
     sp.appendChild(b);
   }
+  const cp = $('choice-picker');
+  cp.innerHTML = '';
+  for (const c of CHOICES) {
+    const b = document.createElement('button');
+    b.className = 'pick-btn pick-clouds' + (c === settings.choices ? ' sel' : '');
+    b.textContent = '☁'.repeat(c);
+    b.setAttribute('aria-label', c + ' izvēles');
+    b.onclick = () => { settings.choices = c; saveJSON('settings', settings); buildPickers(); sfx.tick(); };
+    cp.appendChild(b);
+  }
 }
 
 function togglePause(on) {
@@ -644,20 +696,23 @@ function showAnswers() {
 function showLeaderboard(from) {
   lbReturnTo = from;
   const list = $('lb-list');
-  const scores = loadScores();
+  const scores = loadScores().sort(cmpScores);
   list.innerHTML = '';
   if (!scores.length) {
     list.innerHTML = '<div class="lb-empty">Vēl nav rezultātu — nospēlē pirmo spēli!</div>';
   } else {
     const head = document.createElement('div');
     head.className = 'lb-row head';
-    head.innerHTML = '<span>#</span><span>Tabula</span><span>Ātrums</span><span>Punkti</span><span>Laiks</span>';
+    head.innerHTML = '<span>#</span><span>Tabula</span><span title="Atbilžu mākoņi">☁</span>' +
+      '<span>Ātrums</span><span>Punkti</span><span>Laiks</span>';
     list.appendChild(head);
     scores.slice(0, 10).forEach((s, i) => {
       const r = document.createElement('div');
       r.className = 'lb-row';
-      r.innerHTML = `<span>${i + 1}.</span><span>${s.table}×</span><span>${s.speed}</span>` +
-        `<span>${s.score}/12</span><span>${fmtTime(s.time)}</span>`;
+      const ch = s.choices || 3;
+      r.innerHTML = `<span>${i + 1}.</span><span>${s.table}×</span>` +
+        `<span class="lb-clouds" title="${ch} izvēles">${ch}</span>` +
+        `<span>${s.speed}</span><span>${s.score}/12</span><span>${fmtTime(s.time)}</span>`;
       list.appendChild(r);
     });
   }
@@ -685,22 +740,11 @@ $('btn-sound').onclick = () => {
   if (!settings.muted) sfx.tick();
 };
 
-// rotācijas padoms
-const rotateHint = $('rotate-hint');
-let rotateDismissed = false;
-function checkOrientation() {
-  const portrait = window.innerHeight > window.innerWidth * 1.2;
-  const small = Math.max(window.innerWidth, window.innerHeight) < 950;
-  rotateHint.classList.toggle('hidden', !(portrait && small) || rotateDismissed);
-}
-rotateHint.addEventListener('click', () => { rotateDismissed = true; checkOrientation(); });
-window.addEventListener('resize', checkOrientation);
 
 // ================= STARTS =================
 $('btn-sound').textContent = settings.muted ? '🔇' : '🔊';
 resize();
 initBackground();
 buildPickers();
-checkOrientation();
 toMenu();
 requestAnimationFrame(loop);
