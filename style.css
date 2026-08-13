@@ -118,15 +118,19 @@ html, body {
   transform: translateX(-50%);
   bottom: calc(4% + env(safe-area-inset-bottom));
   z-index: 9;
-  color: rgba(255,255,255,.75);
+  color: rgba(12, 32, 60, .6);
   font-size: clamp(12px, 2.4vh, 16px);
   font-weight: 700;
-  text-decoration: none;
+  text-decoration: underline;
+  text-decoration-thickness: .06em;
+  text-underline-offset: .18em;
   padding: .3em .7em;
   border-radius: 10px;
-  text-shadow: 0 2px 6px rgba(0,0,0,.4);
+  /* gaiša kontūra — atdala tekstu no debesīm */
+  -webkit-text-stroke: .035em rgba(255, 255, 255, .55);
+  paint-order: stroke fill;
 }
-#contact:hover, #contact:active { color: #fff; text-decoration: underline; }
+#contact:hover, #contact:active { color: rgba(12, 32, 60, .9); text-decoration: underline; }
 
 /* ---------- countdown & feedback ---------- */
 #countdown {
